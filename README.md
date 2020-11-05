@@ -29,5 +29,3 @@ I wrote a [quick program](https://github.com/dgaff/moonlight/blob/main/moonlight
 **There are no new ideas, of course.**
 
 Unsurprisingly, everything in code has already been solved and there's a [moon phase](https://www.arduino.cc/reference/en/libraries/moonphase/) library already for Arduino. So the rest of this project is mostly cut-and-paste code. Also unsurprisingly, after I embarked on this project, I found out that someone on Instructables [also had this idea](https://www.instructables.com/Arduino-Controlled-Model-Moon-synchronizes-phase-c/), too. They took a different approach, though, favoring a real time clock and keeping it more as a night-light on battery power.
-
-No big plans for this weekend. Will get some more time in the shop to decompress.

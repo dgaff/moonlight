@@ -24,7 +24,7 @@ Then, final reassembly
 
 I wrote a [quick program](https://github.com/dgaff/moonlight/blob/main/moonlight.ino) to sweep through the phases. I still need to write the wifi connected part, and I want to put a simple web api on it so I can remotely control. 
 
-<img src="https://cdn.zappy.app/37674c8e7b085b6c3a1376db1462dc4e.gif"/>
+![](moonlight.gif)
 
 **There are no new ideas, of course.**
 

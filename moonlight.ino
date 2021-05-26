@@ -79,6 +79,9 @@ void setup()
 
   // Initialize NTP time
   timeClient.begin();
+
+  // Cycle the phases once
+  cyclePhases();
 }
 
 // Lights up different segments of the moon light.
@@ -177,17 +180,14 @@ void setMoonPhase(int angle)
 
 // Main Loop
 
-int startupTestCounter = 0;
+bool nightModeOn = true;
+int nightHour = 21; // time to shut off
+int dayHour = 8;    // time to turn on
+bool isNight = false;
+bool bSetPhase = true; // default to setting the phase on startup
 
 void loop()
 {
-  // Cycle the phases on power up a couple of times
-  if (startupTestCounter < 2)
-  {
-    cyclePhases();
-    startupTestCounter++;
-  }
-
   // Read the time
   timeClient.update();
   time_t time = timeClient.getEpochTime();
@@ -196,10 +196,38 @@ void loop()
   moonData_t moon;              
   moon = moonPhaseV.getPhase(time-utcOffsetInSeconds);
 
-  // We don't need to set the phase very often, since it doesn't change much. Set it once after the startup sequence, then
-  // check the phase every hour and set it.
-  if (startupTestCounter == 2) setMoonPhase(moon.angle);
-  else if (time % 3600 == 0) setMoonPhase(moon.angle);
+  // Check for night mode and toggle on or off based on time. This doesn't take into account if you
+  // plug the light in for the first time at night.
+  if (nightModeOn)
+  {
+    int hour = numberOfHours(time);
+    int minute = numberOfMinutes(time);
+    int seconds = numberOfSeconds(time);
+
+    // Turn on for daytime
+    if (hour == dayHour && minute == 0 && seconds == 0)
+    {
+      bSetPhase = true;
+      isNight = false;
+    }
+    // Turn off for nightime
+    else if (hour == nightHour && minute == 0 && seconds == 0)
+    {
+      setMoonPhase(0); // angle 0 is new moon
+      bSetPhase = false;
+      isNight = true;
+    }
+  }
+
+  // Don't set the phase if it's night. We don't need to set the phase very often, since it doesn't change much. 
+  if (!isNight && time % 3600 == 0) bSetPhase = true;
+
+  // Set the phase if necessary
+  if (bSetPhase) 
+  {
+    setMoonPhase(moon.angle);
+    bSetPhase = false;
+  }
 
 #ifdef SERIAL
   char timestr[10];
@@ -227,6 +255,5 @@ void loop()
   Serial.println( " %" );
 #endif  
 
-//  delay(500);          
   yield();
 }

@@ -2,7 +2,7 @@
 
 <a href="https://www.buymeacoffee.com/douggaff" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me a Coffee" style="height: 60px !important;width: 217px !important;" ></a>
 
-Got some time in the electronics shop this past weekend, so I worked on my wifi-connected Moon Light. This started life as a nightlight for my daughter when she was young.
+Got some time in the electronics shop this past weekend, so I worked on my wifi-connected Moon Light. This started life as a nightlight for my son when he was young. As of October 2026, you can [still buy these](https://www.amazon.com/Uncle-Milton-Moon-My-Room/dp/B071NM2DZB/ref=sr_1_1).
 
 <img src="https://cdn.zappy.app/f3b2f2df8dd4d5ebd1dbe57d7378a53a.png" width="400">
 

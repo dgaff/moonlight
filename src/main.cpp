@@ -3,6 +3,7 @@
 #include <ESP8266WiFi.h>
 #include <WiFiUdp.h>
 #include <TimeLib.h>
+#include <time.h>
 // #include "GDBStub.h"
 
 #include <MoonPhase.hpp>
@@ -40,8 +41,26 @@ char daysOfTheWeek[7][12] = {"Sunday", "Monday", "Tuesday", "Wednesday", "Thursd
 WiFiUDP ntpUDP;
 NTPClient timeClient(ntpUDP, "north-america.pool.ntp.org", utcOffsetInSeconds);
 
+// Setup EST timezone information
+constexpr const char *TZ_INFO{"EST5EDT,M3.2.0/02:00:00,M11.1.0/02:00:00"};
+
 // For getting the moon phase
 MoonPhase moonPhase;        
+
+// Wait for the system time to be set via SNTP
+void waitForTime()
+{
+    configTzTime(TZ_INFO, "pool.ntp.org");
+
+    struct tm timeinfo{};
+    while (!getLocalTime(&timeinfo))
+    {
+#ifdef DEBUGSERIAL  
+        Serial.println("Waiting for SNTP...");
+#endif
+        delay(10);
+    }
+}
 
 // Lights up different segments of the moon light.
 void setPhase(int s1, int s2, int s3, int s4, int s5, int s6)
@@ -108,53 +127,6 @@ void cyclePhases()
   delay(500);    
 }
 
-// VT100 Terminal Emulation (make sure to set this in the terminal program)
-#define OFF         "\033[0m"
-#define BOLD        "\033[1m"
-#define LOWINTENS   "\033[2m"
-#define UNDERLINE   "\033[4m"
-#define BLINK       "\033[5m"
-#define REVERSE     "\033[7m"
-#define GOTOXY( x,y) "\033[x;yH"
-#define CLS          "\033[2J"
-
-// Run once
-void setup()
-{
-  // Serial port output. Note that GDB isn't working reliably yet.
-#ifdef DEBUGSERIAL  
-  Serial.begin(115200);
-//  gdbstub_init();
-#endif
-
-  // Set all pins to digital output
-  pinMode(D0, OUTPUT); 
-  pinMode(D1, OUTPUT);
-  pinMode(D2, OUTPUT);
-  pinMode(D3, OUTPUT);
-  pinMode(D4, OUTPUT);
-  pinMode(D5, OUTPUT);
-  pinMode(D6, OUTPUT);
-  pinMode(D7, OUTPUT);
-  pinMode(D8, OUTPUT);
-
-  // Connect to Wifi
-  // Note: Was having power droops from the regulator when Wifi spiked, causing serial to disconnect.
-  // Reducing the WiFi output power helped diagnose the issue.
-  // I put a 470 uF electrolytic capacitor from 3.3V to GND, which fixed it.
-  // WiFi.setOutputPower(10); 
-  WiFi.begin(ssid, password);
-  while ( WiFi.status() != WL_CONNECTED ) {
-    delay ( 500 );
-  }
-
-  // Initialize NTP time
-  timeClient.begin();
-
-  // Cycle the phases once
-  cyclePhases();
-}
-
 // Set approximate phase angle.
 // Credit: https://blogs.jccc.edu/astronomy/lab-manual/experiment-two-lunar-phases/
 void setMoonPhase(int angle)
@@ -187,6 +159,60 @@ void setMoonPhase(int angle)
     setPhase(0, 0, 0, 0, 0, 0); // New Moon
 }
 
+// VT100 Terminal Emulation (make sure to set this in the terminal program)
+#define OFF         "\033[0m"
+#define BOLD        "\033[1m"
+#define LOWINTENS   "\033[2m"
+#define UNDERLINE   "\033[4m"
+#define BLINK       "\033[5m"
+#define REVERSE     "\033[7m"
+#define GOTOXY(x,y) "\033[x;yH"
+#define CLS         "\033[2J"
+
+// Run once
+void setup()
+{
+  // Serial port output. Note that GDB isn't working reliably yet.
+#ifdef DEBUGSERIAL  
+  Serial.begin(115200);
+  Serial.print("\033[2J\033[H"); // clear the terminal
+//  gdbstub_init();
+#endif
+
+  // Set all pins to digital output
+  pinMode(D0, OUTPUT); 
+  pinMode(D1, OUTPUT);
+  pinMode(D2, OUTPUT);
+  pinMode(D3, OUTPUT);
+  pinMode(D4, OUTPUT);
+  pinMode(D5, OUTPUT);
+  pinMode(D6, OUTPUT);
+  pinMode(D7, OUTPUT);
+  pinMode(D8, OUTPUT);
+
+  // Connect to Wifi
+  // Note: Was having power droops from the regulator when Wifi spiked, causing serial to disconnect.
+  // Reducing the WiFi output power helped diagnose the issue.
+  // I put a 470 uF electrolytic capacitor from 3.3V to GND, which fixed it.
+  // WiFi.setOutputPower(10); 
+  WiFi.begin(ssid, password);
+  while ( WiFi.status() != WL_CONNECTED ) {
+    delay ( 500 );
+  }
+#ifdef DEBUGSERIAL  
+  Serial.print("Wifi connected\n");
+#endif
+
+  // Initialize system time via SNTP
+  waitForTime();
+
+  // Initialize NTP time
+  timeClient.begin();
+
+  // Cycle the phases once
+  cyclePhases();
+}
+
 // Main Loop
 
 bool nightModeOn = true;
@@ -197,6 +223,10 @@ bool bSetPhase = true; // default to setting the phase on startup
 
 void loop()
 {
+  // Get the current local time
+  struct tm now;
+  getLocalTime(&now);
+
   // Read the time
   timeClient.update();
   time_t time = timeClient.getEpochTime();
@@ -239,8 +269,9 @@ void loop()
   }
 
 #ifdef DEBUGSERIAL
-  char timestr[10];
+  char timestr[10], timestr2[10];
   Serial.print("\033[0;0H"); // terminal emulation to go to top
+  sprintf(timestr2, "%02d:%02d:%02d", now.tm_hour, now.tm_min, now.tm_sec);
   sprintf(timestr, "%02d:%02d:%02d", timeClient.getHours(), timeClient.getMinutes(), timeClient.getSeconds());
   Serial.print(daysOfTheWeek[timeClient.getDay()]);
   Serial.print(", ");
@@ -252,6 +283,8 @@ void loop()
   Serial.print(" ");
   Serial.print(", ");
   Serial.print(timestr);
+  Serial.print(" ");
+  Serial.print(timestr2);
   Serial.println("");
   //Serial.println(timeClient.getFormattedTime());
 

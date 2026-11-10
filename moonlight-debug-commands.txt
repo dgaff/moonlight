@@ -1,0 +1,54 @@
+Note: These are some old notes from when I was trying to get GDB debug working. 
+
+/Users/douggaff/Library/Arduino15/packages/esp8266/tools/xtensa-lx106-elf-gcc/2.5.0-4-b40a506/bin/xtensa-lx106-elf-gdb
+
+set remote hardware-breakpoint-limit 1
+set remote hardware-watchpoint-limit 1
+set remote interrupt-on-connect on
+set remote kill-packet off
+set remote symbol-lookup-packet off
+set remote verbose-resume-packet off
+mem 0x20000000 0x3fefffff ro cache
+mem 0x3ff00000 0x3fffffff rw
+mem 0x40000000 0x400fffff ro cache
+mem 0x40100000 0x4013ffff rw cache
+mem 0x40140000 0x5fffffff ro cache
+mem 0x60000000 0x60001fff rw
+set serial baud 115200
+file ~/moonlight.ino.elf 
+
+target remote /dev/cu.usbserial-1410
+
+detach
+
+
+Building binaries from https://github.com/earlephilhower/esp-quick-toolchain
+
+
+make download GHUSER=<user> GHTOKEN=<your_token_here>
+
+make ARDUINO=~/code/Arduino GHUSER=<user> GHTOKEN=<your_token_here>
+
+Dealing with missing crt0.o when building the toolchain: 
+
+https://github.com/skaht/Csu-85
+https://lists.sr.ht/~sircmpwn/public-inbox/%3C3A12328E-5EC6-4E34-A676-64A3039A2AF7%40herrbischoff.com%3E
+
+I commented out the LDFLAGS static option on LINUX
+
+
+douggaff@Dougs-MBP esp-quick-toolchain % gcc --version
+Configured with: --prefix=/Library/Developer/CommandLineTools/usr --with-gxx-include-dir=/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/4.2.1
+Apple clang version 12.0.0 (clang-1200.0.32.29)
+Target: x86_64-apple-darwin20.3.0
+Thread model: posix
+InstalledDir: /Library/Developer/CommandLineTools/usr/bin
+douggaff@Dougs-MBP esp-quick-toolchain % which gcc
+/usr/bin/gcc
+douggaff@Dougs-MBP esp-quick-toolchain % echo $PATH
+/usr/local/git/bin:/usr/local/sbin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/usr/local/MacGPG2/bin
+douggaff@Dougs-MBP esp-quick-toolchain % 
+
+alias gcc='gcc-10'
+alias g++='g++-10'
+alias c++='c++-10'

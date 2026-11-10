@@ -1,3 +1,7 @@
+// DEPRECATED!!
+//
+// This was the original Arduino IDE  version of the code. Keeping it here for historical reference.
+
 #include "NTPClient.h"
 #include "ESP8266WiFi.h"
 #include "WiFiUdp.h"

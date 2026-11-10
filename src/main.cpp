@@ -1,20 +1,15 @@
 #include <Arduino.h>
-#include <NTPClient.h>
 #include <ESP8266WiFi.h>
-#include <WiFiUdp.h>
-#include <TimeLib.h>
 #include <time.h>
-// #include "GDBStub.h"
-
+// #include <GDBStub.h>
 #include <MoonPhase.hpp>
-
 
 // Don't save your wifi to GitHub! Put these two declarations in your wifisecrets.h file and replace with your SSID and PW.
 // const char *ssid     = "SSID";
 // const char *password = "WIFI Password";
 #include "wifisecrets.h"
 
-// Wemos pin mapping
+// Wemos pin mapping. See resetnotes.md about possible pin conflicts and usage.
 // #define A0 not sure  ADC0
 #define D0 16 // WAKE
 #define D1 5  // SCL
@@ -31,36 +26,13 @@
 // Turn on serial output for debugging
 #define DEBUGSERIAL
 
-// Time info
-const long utcOffsetInSeconds = -18000; // EST
-//const long utcOffsetInSeconds = -14400; // EDT
-
-char daysOfTheWeek[7][12] = {"Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"};
-
-// Define NTP Client to get time
-WiFiUDP ntpUDP;
-NTPClient timeClient(ntpUDP, "north-america.pool.ntp.org", utcOffsetInSeconds);
-
 // Setup EST timezone information
 constexpr const char *TZ_INFO{"EST5EDT,M3.2.0/02:00:00,M11.1.0/02:00:00"};
+char daysOfTheWeek[7][12] = {"Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"};
+char monthsOfTheYear[12][12] = {"January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"};
 
 // For getting the moon phase
 MoonPhase moonPhase;        
-
-// Wait for the system time to be set via SNTP
-void waitForTime()
-{
-    configTzTime(TZ_INFO, "pool.ntp.org");
-
-    struct tm timeinfo{};
-    while (!getLocalTime(&timeinfo))
-    {
-#ifdef DEBUGSERIAL  
-        Serial.println("Waiting for SNTP...");
-#endif
-        delay(10);
-    }
-}
 
 // Lights up different segments of the moon light.
 void setPhase(int s1, int s2, int s3, int s4, int s5, int s6)
@@ -172,10 +144,9 @@ void setMoonPhase(int angle)
 // Run once
 void setup()
 {
-  // Serial port output. Note that GDB isn't working reliably yet.
+  // Enable serial immediately
 #ifdef DEBUGSERIAL  
   Serial.begin(115200);
-  Serial.print("\033[2J\033[H"); // clear the terminal
 //  gdbstub_init();
 #endif
 
@@ -190,11 +161,23 @@ void setup()
   pinMode(D7, OUTPUT);
   pinMode(D8, OUTPUT);
 
+  // Cycle the phases once as part of the startup sequence
+  cyclePhases();
+
+  // Clear the terminal (VT100 escape sequence)
+#ifdef DEBUGSERIAL  
+  Serial.print("\033[2J\033[H"); 
+//  gdbstub_init();
+#endif
+
   // Connect to Wifi
   // Note: Was having power droops from the regulator when Wifi spiked, causing serial to disconnect.
   // Reducing the WiFi output power helped diagnose the issue.
   // I put a 470 uF electrolytic capacitor from 3.3V to GND, which fixed it.
   // WiFi.setOutputPower(10); 
+#ifdef DEBUGSERIAL  
+  Serial.print("Wifi connecting\n");
+#endif
   WiFi.begin(ssid, password);
   while ( WiFi.status() != WL_CONNECTED ) {
     delay ( 500 );
@@ -204,13 +187,34 @@ void setup()
 #endif
 
   // Initialize system time via SNTP
-  waitForTime();
+#ifdef DEBUGSERIAL  
+  Serial.println("SNTP Initialization");
+#endif
+  configTzTime(TZ_INFO, "pool.ntp.org", "time.nist.gov", "time.google.com");
 
-  // Initialize NTP time
-  timeClient.begin();
+  // Wait for SNTP to get the current time before proceeding.
+  struct tm timeinfo{};
+  uint8_t tries = 0;
+  while (!getLocalTime(&timeinfo))
+  {
+#ifdef DEBUGSERIAL  
+      Serial.printf("Waiting for SNTP... (WiFi status %d, tries %d)\n", WiFi.status(), ++tries);
+#endif
+      if (tries >= 12)
+      {
+#ifdef DEBUGSERIAL
+        Serial.println("SNTP failed, restarting");
+#endif
+        ESP.restart();
+      }
+  }
 
-  // Cycle the phases once
-  cyclePhases();
+  // Clear the terminal after a short delay for user to read the status messages. 
+#ifdef DEBUGSERIAL  
+  delay(1000);
+  Serial.print("\033[2J\033[H"); 
+#endif
+
 }
 
 // Main Loop
@@ -227,10 +231,6 @@ void loop()
   struct tm now;
   getLocalTime(&now);
 
-  // Read the time
-  timeClient.update();
-  time_t time = timeClient.getEpochTime();
-
   // Calculate the moon phase
   moonData_t moon = moonPhase.getPhase();
 
@@ -238,9 +238,9 @@ void loop()
   // plug the light in for the first time at night.
   if (nightModeOn)
   {
-    int hour = numberOfHours(time);
-    int minute = numberOfMinutes(time);
-    int seconds = numberOfSeconds(time);
+    int hour = now.tm_hour;
+    int minute = now.tm_min;
+    int seconds = now.tm_sec;
 
     // Turn on for daytime
     if (hour == dayHour && minute == 0 && seconds == 0)
@@ -258,35 +258,32 @@ void loop()
   }
 
   // Don't set the phase if it's night. We don't need to set the phase very often, since it doesn't change much. 
-  if (!isNight && time % 3600 == 0) bSetPhase = true;
+  if (!isNight && now.tm_sec == 0) bSetPhase = true;
 
   // Set the phase if necessary
   if (bSetPhase) 
   {
-    // setMoonPhase(moon.angle);
     setMoonPhase(moon.angleDeg);
     bSetPhase = false;
   }
 
 #ifdef DEBUGSERIAL
-  char timestr[10], timestr2[10];
+  // Print the current local time and date. We cleared the screen above because this will overwrite the previous output.
+  char timestr[10];
   Serial.print("\033[0;0H"); // terminal emulation to go to top
-  sprintf(timestr2, "%02d:%02d:%02d", now.tm_hour, now.tm_min, now.tm_sec);
-  sprintf(timestr, "%02d:%02d:%02d", timeClient.getHours(), timeClient.getMinutes(), timeClient.getSeconds());
-  Serial.print(daysOfTheWeek[timeClient.getDay()]);
+  sprintf(timestr, "%02d:%02d:%02d", now.tm_hour, now.tm_min, now.tm_sec);
+  Serial.print(daysOfTheWeek[now.tm_wday]);
   Serial.print(", ");
-  Serial.print(day(time));
+  Serial.print(now.tm_mday);
   Serial.print(" ");
-  Serial.print(month(time));
+  Serial.print(monthsOfTheYear[now.tm_mon]);
   Serial.print(" ");
-  Serial.print(year(time));
+  Serial.print(now.tm_year + 1900);
   Serial.print(" ");
   Serial.print(", ");
   Serial.print(timestr);
   Serial.print(" ");
-  Serial.print(timestr2);
   Serial.println("");
-  //Serial.println(timeClient.getFormattedTime());
 
   // Print moon info
   Serial.print( "Moon phase angle: " );

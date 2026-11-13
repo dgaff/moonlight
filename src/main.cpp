@@ -106,29 +106,71 @@ void setMoonPhase(int angle)
   if (angle >= 0 && angle < 15)
     setPhase(0, 0, 0, 0, 0, 0); // New Moon
   else if (angle >= 15 && angle < 45)
-    setPhase(0, 0, 0, 0, 0, 1); // Waxing Crescent
+    setPhase(0, 0, 0, 0, 0, 1); // Waxing Crescent. 1/6th 16.7%
   else if (angle >= 45 && angle < 75)
-    setPhase(0, 0, 0, 0, 1, 1); // Waxing Crescent
+    setPhase(0, 0, 0, 0, 1, 1); // Waxing Crescent. 2/6th 33.3%
   else if (angle >= 75 && angle < 105)
-    setPhase(0, 0, 0, 1, 1, 1); // 1st Quarter (half moon)
+    setPhase(0, 0, 0, 1, 1, 1); // 1st Quarter (half moon) 3/6th 50%
   else if (angle >= 105 && angle < 135)
-    setPhase(0, 0, 1, 1, 1, 1); // Waxing Gibbous
+    setPhase(0, 0, 1, 1, 1, 1); // Waxing Gibbous. 4/6th 66.7%
   else if (angle >= 135 && angle < 165)
-    setPhase(0, 1, 1, 1, 1, 1); // Waxing Gibbous
+    setPhase(0, 1, 1, 1, 1, 1); // Waxing Gibbous. 5/6th 83.3%
   else if (angle >= 165 && angle < 195)
-    setPhase(1, 1, 1, 1, 1, 1); // Full Moon
+    setPhase(1, 1, 1, 1, 1, 1); // Full Moon. 6/6th 100%
   else if (angle >= 195 && angle < 225)
-    setPhase(1, 1, 1, 1, 1, 0); // Waning Gibbous
+    setPhase(1, 1, 1, 1, 1, 0); // Waning Gibbous. 5/6th 83.3%
   else if (angle >= 225 && angle < 255)
-    setPhase(1, 1, 1, 1, 0, 0); // Waning Gibbous
+    setPhase(1, 1, 1, 1, 0, 0); // Waning Gibbous. 4/6th 66.7%
   else if (angle >= 255 && angle < 285)
-    setPhase(1, 1, 1, 0, 0, 0); // 3rd Quarter (half moon)
+    setPhase(1, 1, 1, 0, 0, 0); // 3rd Quarter (half moon) 3/6th 50%
   else if (angle >= 285 && angle < 315)
-    setPhase(1, 1, 0, 0, 0, 0); // Waning Crescent
+    setPhase(1, 1, 0, 0, 0, 0); // Waning Crescent. 2/6th 33.3%
   else if (angle >= 315 && angle < 345)
-    setPhase(1, 0, 0, 0, 0, 0); // Waning Crescent
+    setPhase(1, 0, 0, 0, 0, 0); // Waning Crescent. 1/6th 16.7%`
   else // 345 to 360
     setPhase(0, 0, 0, 0, 0, 0); // New Moon
+}
+
+/*
+  Set the moon phase based on the angle and the percentage of illumination. The angle determines whether it is waxing or waning.
+  Since there are so few segments in the moon light, the spacing is a bit uneven in order to make the light look more like the
+  moon.
+*/
+
+void setMoonPhaseByPercentage(int angle, float percentage)
+{
+  if (angle >= 0 && angle <= 180) {
+    if (percentage >= 0.0 && percentage < 10.0)
+      setPhase(0, 0, 0, 0, 0, 0); // New Moon
+    else if (percentage >= 10.0 && percentage < 28.0)
+      setPhase(0, 0, 0, 0, 0, 1); // Waxing Crescent. 1/6th 16.7%
+    else if (percentage >= 28.0 && percentage < 42.0)
+      setPhase(0, 0, 0, 0, 1, 1); // Waxing Crescent. 2/6th 33.3%
+    else if (percentage >= 42.0 && percentage < 58.0)
+      setPhase(0, 0, 0, 1, 1, 1); // 1st Quarter (half moon) 3/6th 50%
+    else if (percentage >= 58.0 && percentage < 72.0)
+      setPhase(0, 0, 1, 1, 1, 1); // Waxing Gibbous. 4/6th 66.7%
+    else if (percentage >= 72.0 && percentage < 90.0)
+      setPhase(0, 1, 1, 1, 1, 1); // Waxing Gibbous. 5/6th 83.3%
+    else if (percentage >= 90.0 && percentage < 100.0)
+      setPhase(1, 1, 1, 1, 1, 1); // Full Moon. 6/6th 100%
+  }
+  else {
+    if (percentage >= 90.0 && percentage < 100.0)
+      setPhase(1, 1, 1, 1, 1, 1); // Full Moon. 6/6th 100%
+    else if (percentage >= 72.0 && percentage < 90.0)
+      setPhase(1, 1, 1, 1, 1, 0); // Waning Gibbous. 5/6th 83.3%
+    else if (percentage >= 58.0 && percentage < 72.0)
+      setPhase(1, 1, 1, 1, 0, 0); // Waning Gibbous. 4/6th 66.7%
+    else if (percentage >= 42.0 && percentage < 58.0)
+      setPhase(1, 1, 1, 0, 0, 0); // 3rd Quarter (half moon) 3/6th 50%
+    else if (percentage >= 28.0 && percentage < 42.0)
+      setPhase(1, 1, 0, 0, 0, 0); // Waning Crescent. 2/6th 33.3%
+    else if (percentage >= 10.0 && percentage < 28.0)
+      setPhase(1, 0, 0, 0, 0, 0); // Waning Crescent. 1/6th 16.7%
+    else
+      setPhase(0, 0, 0, 0, 0, 0); // New Moon
+  }
 }
 
 // VT100 Terminal Emulation (make sure to set this in the terminal program)
@@ -263,7 +305,8 @@ void loop()
   // Set the phase if necessary
   if (bSetPhase) 
   {
-    setMoonPhase(moon.angleDeg);
+    // setMoonPhase(moon.angleDeg);
+    setMoonPhaseByPercentage(moon.angleDeg, moon.amountLit*100.0);
     bSetPhase = false;
   }
 
@@ -290,7 +333,7 @@ void loop()
   Serial.print( moon.angleDeg );             // angle is a integer between 0-360
   Serial.println( " degrees." );
   Serial.print( "Moon surface lit: " );
-  Serial.print( moon.amountLit * 100 );  // percentLit is a real between 0-1
+  Serial.print( moon.amountLit * 100.0 );  // percentLit is a real between 0-1
   Serial.println( " %" );
 #endif  
 
